@@ -28,7 +28,6 @@ class TextSplitter:
             return [text] if text.strip() else []
 
         chunks = []
-        # Find suitable separator
         separator = ""
         for s in self.separators:
             if s in text:
@@ -45,7 +44,6 @@ class TextSplitter:
                 joined = separator.join(current_chunk)
                 if joined.strip():
                     chunks.append(joined.strip())
-                # Handle overlap
                 overlap_len = 0
                 overlap_splits = []
                 for item in reversed(current_chunk):

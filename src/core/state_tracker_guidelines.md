@@ -2,7 +2,7 @@
 
 ## Overview
 
-The [`state_tracker.py`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/core/state_tracker.py) module manages **hash-based incremental ingestion state** for the Business Analyst RAG pipeline. It tracks metadata and SHA-256 checksums of documents processed in `data/documents/` and persists this state to a local JSON file (`data/metadata/ingestion_state.json`).
+The [`state_tracker.py`](state_tracker.py) module manages **hash-based incremental ingestion state** for the Business Analyst RAG pipeline. It tracks metadata and SHA-256 checksums of documents processed in `data/documents/` and persists this state to a local JSON file (`data/metadata/ingestion_state.json`).
 
 By detecting which files are **new**, **modified**, **deleted**, or **unchanged**, it ensures the vector store is synchronized efficiently without redundant embedding calculations.
 

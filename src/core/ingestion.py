@@ -50,13 +50,11 @@ class IngestionEngine:
         errors: List[str] = []
         total_chunks_added = 0
 
-        # 1. Handle deleted files
         for path_str in deleted_paths:
             logger.info(f"Evicting deleted file vectors: {path_str}")
             self.vector_store.delete_by_file_path(path_str)
             self.state_tracker.remove_file_state(path_str)
 
-        # 2. Process added or modified files
         for file_path in added_modified:
             path_str = str(file_path.resolve())
             file_hash = self.state_tracker.calculate_file_hash(file_path)
@@ -66,15 +64,13 @@ class IngestionEngine:
                 continue
 
             try:
-                # Delete old vectors if modified
+
                 self.vector_store.delete_by_file_path(path_str)
 
-                # Load and chunk file
                 loader = LoaderFactory.get_loader(file_path)
                 raw_docs = loader.load(file_path, file_hash)
                 chunks = self.text_splitter.split_documents(raw_docs)
 
-                # Upsert into Vector Store
                 if chunks:
                     added_count = self.vector_store.add_chunks(chunks)
                     total_chunks_added += added_count
@@ -94,7 +90,6 @@ class IngestionEngine:
                     file_path, file_hash, 0, status=f"{FileStatus.FAILED}: {str(e)}"
                 )
 
-        # Save updated state
         self.state_tracker.save_state()
 
         result = IngestionResult(

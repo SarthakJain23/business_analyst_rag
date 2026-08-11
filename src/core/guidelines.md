@@ -6,7 +6,7 @@ The `src/core/` module orchestrates incremental document processing, text chunki
 ## Structural Design & Guidelines
 
 1. **State Tracker (`state_tracker.py`)**:
-   - Detailed specification & code breakdown: [`src/core/state_tracker_guidelines.md`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/core/state_tracker_guidelines.md)
+   - Detailed specification & code breakdown: [state_tracker_guidelines.md](./state_tracker_guidelines.md)
    - Maintains `data/metadata/ingestion_state.json`.
    - Computes SHA-256 hash for every file in `data/documents/`.
    - Compares current file system state with recorded state to classify files into four categories:
@@ -16,10 +16,12 @@ The `src/core/` module orchestrates incremental document processing, text chunki
      - `UNCHANGED`: File untouched (bypassed during ingestion).
 
 2. **Text Splitter (`text_splitter.py`)**:
+   - Detailed specification & code breakdown: [text_splitter_guidelines.md](./text_splitter_guidelines.md)
    - Uses recursive character text splitting with configurable chunk size (default: 1000 characters) and overlap (default: 150 characters).
    - Preserves all metadata from the parent `Document` and appends `chunk_id` and `chunk_index`.
 
 3. **Ingestion Orchestrator (`ingestion.py`)**:
+   - Detailed specification & code breakdown: [ingestion_guidelines.md](./ingestion_guidelines.md)
    - Atomic synchronization sequence:
      1. Query state changes via `state_tracker.get_changes()`.
      2. For `DELETED` and `MODIFIED` files, evict existing vectors from ChromaDB.

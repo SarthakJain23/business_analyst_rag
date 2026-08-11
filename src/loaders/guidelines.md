@@ -39,9 +39,9 @@ src/loaders/
 
 ## Loader Guidelines Index
 
-- 📐 [Base Loader Guidelines (`src/loaders/base/guidelines.md`)](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/base/guidelines.md) — Standardized `BaseLoader` & `RawDocument` interface specifications.
-- 🏭 [Loader Factory Guidelines (`src/loaders/factory/guidelines.md`)](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/factory/guidelines.md) — Factory pattern implementation & dispatch registry.
-- 📕 [PDF Loader Guidelines (`src/loaders/pdf_loader/guidelines.md`)](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/pdf_loader/guidelines.md) — PDF extraction, page metadata, and citations.
-- 📄 [Excel & CSV Loader Guidelines (`src/loaders/excel_loader/guidelines.md`)](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/excel_loader/guidelines.md) — Workbooks, sheets, and Markdown tabular conversions.
-- 📄 [Word Document Loader Guidelines (`src/loaders/docx_loader/guidelines.md`)](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/docx_loader/guidelines.md) — Paragraph extraction and table layout parsing.
-- 📝 [Text & Markdown Loader Guidelines (`src/loaders/text_loader/guidelines.md`)](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/text_loader/guidelines.md) — Plain text and Markdown file parsing.
+- 📐 [Base Loader Guidelines (`src/loaders/base/guidelines.md`)](base/guidelines.md) — Standardized `BaseLoader` & `RawDocument` interface specifications.
+- 🏭 [Loader Factory Guidelines (`src/loaders/factory/guidelines.md`)](factory/guidelines.md) — Factory pattern implementation & dispatch registry.
+- 📕 [PDF Loader Guidelines (`src/loaders/pdf_loader/guidelines.md`)](pdf_loader/guidelines.md) — PDF extraction, page metadata, and citations.
+- 📄 [Excel & CSV Loader Guidelines (`src/loaders/excel_loader/guidelines.md`)](excel_loader/guidelines.md) — Workbooks, sheets, and Markdown tabular conversions.
+- 📄 [Word Document Loader Guidelines (`src/loaders/docx_loader/guidelines.md`)](docx_loader/guidelines.md) — Paragraph extraction and table layout parsing.
+- 📝 [Text & Markdown Loader Guidelines (`src/loaders/text_loader/guidelines.md`)](text_loader/guidelines.md) — Plain text and Markdown file parsing.

@@ -179,9 +179,7 @@ with st.sidebar:
     st.markdown(f"**Total Chunks in Vector DB**: `{stats['total_chunks']}`")
 
     st.markdown("---")
-    st.markdown(
-        "📖 [Master Guidelines](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/guidelines.md)"
-    )
+    st.markdown("📖 [Master Guidelines](guidelines.md)")
 
 # --- MAIN PANEL ---
 st.markdown('<div class="main-title">Business Analyst RAG Assistant</div>', unsafe_allow_html=True)

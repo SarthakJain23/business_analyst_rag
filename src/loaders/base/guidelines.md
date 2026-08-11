@@ -2,7 +2,7 @@
 
 ## Overview
 
-The [`base.py`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/base/base.py) module defines the abstract contract [`BaseLoader`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/base/base.py#L20) and the standardized data structure [`RawDocument`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/base/base.py#L6) used across all file parsing components in the system.
+The [`base.py`](base.py) module defines the abstract contract [`BaseLoader`](base.py#L20) and the standardized data structure [`RawDocument`](base.py#L6) used across all file parsing components in the system.
 
 ---
 
