@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List
 
 from src.config import settings
-from src.core.state_tracker import StateTracker
+from src.core.state_tracker import FileStatus, StateTracker
 from src.core.text_splitter import TextSplitter
 from src.loaders.factory import LoaderFactory
 from src.utils.logger import get_logger
@@ -79,17 +79,19 @@ class IngestionEngine:
                     added_count = self.vector_store.add_chunks(chunks)
                     total_chunks_added += added_count
                     self.state_tracker.update_file_state(
-                        file_path, file_hash, len(chunks), status="indexed"
+                        file_path, file_hash, len(chunks), status=FileStatus.INDEXED
                     )
                 else:
-                    self.state_tracker.update_file_state(file_path, file_hash, 0, status="empty")
+                    self.state_tracker.update_file_state(
+                        file_path, file_hash, 0, status=FileStatus.EMPTY
+                    )
 
             except Exception as e:
                 err_msg = f"Failed to ingest file {file_path.name}: {str(e)}"
                 logger.error(err_msg)
                 errors.append(err_msg)
                 self.state_tracker.update_file_state(
-                    file_path, file_hash, 0, status=f"error: {str(e)}"
+                    file_path, file_hash, 0, status=f"{FileStatus.FAILED}: {str(e)}"
                 )
 
         # Save updated state

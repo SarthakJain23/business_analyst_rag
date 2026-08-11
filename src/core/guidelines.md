@@ -6,6 +6,7 @@ The `src/core/` module orchestrates incremental document processing, text chunki
 ## Structural Design & Guidelines
 
 1. **State Tracker (`state_tracker.py`)**:
+   - Detailed specification & code breakdown: [`src/core/state_tracker_guidelines.md`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/core/state_tracker_guidelines.md)
    - Maintains `data/metadata/ingestion_state.json`.
    - Computes SHA-256 hash for every file in `data/documents/`.
    - Compares current file system state with recorded state to classify files into four categories:

@@ -1,6 +1,7 @@
 import hashlib
 import json
 from dataclasses import asdict, dataclass
+from enum import Enum
 from pathlib import Path
 from typing import Dict, List, Tuple
 
@@ -8,6 +9,13 @@ from src.config import settings
 from src.utils.logger import get_logger
 
 logger = get_logger("state_tracker")
+
+
+class FileStatus(str, Enum):
+    INDEXED = "indexed"
+    FAILED = "failed"
+    PENDING = "pending"
+    EMPTY = "empty"
 
 
 @dataclass
@@ -18,7 +26,7 @@ class FileState:
     file_size_bytes: int
     last_modified: float
     chunk_count: int = 0
-    status: str = "indexed"  # "indexed", "failed", "pending"
+    status: FileStatus | str = FileStatus.INDEXED
 
 
 class StateTracker:
@@ -43,7 +51,14 @@ class StateTracker:
             try:
                 with open(self.state_file, "r", encoding="utf-8") as f:
                     raw_data = json.load(f)
-                    self._state = {path: FileState(**data) for path, data in raw_data.items()}
+                    self._state = {}
+                    for path, data in raw_data.items():
+                        if "status" in data and isinstance(data["status"], str):
+                            try:
+                                data["status"] = FileStatus(data["status"])
+                            except ValueError:
+                                pass
+                        self._state[path] = FileState(**data)
                 logger.info(f"Loaded state tracker with {len(self._state)} recorded files.")
             except Exception as e:
                 logger.error(f"Failed to read state tracker file {self.state_file}: {e}")
@@ -63,7 +78,7 @@ class StateTracker:
 
     def detect_changes(
         self, documents_dir: Path = settings.DOCUMENTS_DIR
-    ) -> Tuple[List[Path], List[Path], List[str]]:
+    ) -> Tuple[List[Path], List[str], List[str]]:
         """
         Scans documents_dir and returns:
         - added_or_modified_files: List of Path objects that are new or updated.
@@ -77,7 +92,6 @@ class StateTracker:
         added_or_modified: List[Path] = []
         unchanged: List[str] = []
 
-        # Check existing state against current disk files
         for path_str, file_path in current_disk_files.items():
             current_hash = self.calculate_file_hash(file_path)
             recorded = self._state.get(path_str)
@@ -87,7 +101,6 @@ class StateTracker:
             else:
                 unchanged.append(path_str)
 
-        # Detect deleted files
         recorded_paths = set(self._state.keys())
         current_paths = set(current_disk_files.keys())
         deleted_paths = list(recorded_paths - current_paths)
@@ -98,7 +111,11 @@ class StateTracker:
         return added_or_modified, deleted_paths, unchanged
 
     def update_file_state(
-        self, file_path: Path, file_hash: str, chunk_count: int, status: str = "indexed"
+        self,
+        file_path: Path,
+        file_hash: str,
+        chunk_count: int,
+        status: FileStatus | str = FileStatus.INDEXED,
     ) -> None:
         path_str = str(file_path.resolve())
         stat = file_path.stat()
