@@ -3,7 +3,7 @@ from typing import List
 
 import pandas as pd
 
-from src.loaders.base import BaseLoader, RawDocument
+from src.loaders.base.base import BaseLoader, RawDocument
 from src.utils.logger import get_logger
 
 logger = get_logger("excel_loader")

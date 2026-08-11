@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import List
 
-from src.loaders.base import BaseLoader, RawDocument
+from src.loaders.base.base import BaseLoader, RawDocument
 from src.utils.logger import get_logger
 
 logger = get_logger("text_loader")

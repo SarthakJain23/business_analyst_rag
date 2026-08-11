@@ -3,7 +3,7 @@ from typing import List
 
 import docx
 
-from src.loaders.base import BaseLoader, RawDocument
+from src.loaders.base.base import BaseLoader, RawDocument
 from src.utils.logger import get_logger
 
 logger = get_logger("docx_loader")
@@ -18,7 +18,6 @@ class DocxLoader(BaseLoader):
             doc = docx.Document(str(file_path))
             full_text = []
 
-            
             for p in doc.paragraphs:
                 if p.text.strip():
                     full_text.append(p.text.strip())
