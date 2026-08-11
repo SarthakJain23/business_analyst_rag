@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Dict, Iterator, List, Tuple
+from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 from src.config import settings
 from src.llm.client import GeminiClient
@@ -30,8 +30,8 @@ class RAGEngine:
 
     def __init__(
         self,
-        vector_store: VectorStoreManager = None,
-        llm_client: GeminiClient = None,
+        vector_store: Optional[VectorStoreManager] = None,
+        llm_client: Optional[GeminiClient] = None,
     ):
         self.vector_store = vector_store or VectorStoreManager()
         self.llm_client = llm_client or GeminiClient()

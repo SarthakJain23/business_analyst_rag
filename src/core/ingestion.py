@@ -1,15 +1,13 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from src.config import settings
 from src.core.state_tracker import FileStatus, StateTracker
 from src.core.text_splitter import TextSplitter
 from src.loaders.factory import LoaderFactory
 from src.utils.logger import get_logger
-
-if TYPE_CHECKING:
-    from src.vector_store.store import VectorStoreManager
+from src.vector_store.store import VectorStoreManager
 
 logger = get_logger("ingestion_engine")
 
@@ -29,12 +27,10 @@ class IngestionEngine:
     def __init__(
         self,
         documents_dir: Path = settings.DOCUMENTS_DIR,
-        state_tracker: StateTracker = None,
-        vector_store: "VectorStoreManager" = None,
-        text_splitter: TextSplitter = None,
+        state_tracker: Optional[StateTracker] = None,
+        vector_store: Optional["VectorStoreManager"] = None,
+        text_splitter: Optional[TextSplitter] = None,
     ):
-        from src.vector_store.store import VectorStoreManager
-
         self.documents_dir = documents_dir
         self.state_tracker = state_tracker or StateTracker()
         self.vector_store = vector_store or VectorStoreManager()
@@ -64,9 +60,7 @@ class IngestionEngine:
                 continue
 
             try:
-
                 self.vector_store.delete_by_file_path(path_str)
-
                 loader = LoaderFactory.get_loader(file_path)
                 raw_docs = loader.load(file_path, file_hash)
                 chunks = self.text_splitter.split_documents(raw_docs)

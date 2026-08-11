@@ -1,4 +1,4 @@
-from typing import Iterator
+from typing import Iterator, Optional
 
 from google import genai
 from google.genai import types
@@ -26,7 +26,7 @@ class GeminiClient:
     def generate_response(
         self,
         prompt: str,
-        system_instruction: str = None,
+        system_instruction: Optional[str] = None,
         temperature: float = 0.2,
         top_p: float = 0.9,
     ) -> str:
@@ -46,7 +46,7 @@ class GeminiClient:
                 contents=prompt,
                 config=config,
             )
-            return response.text
+            return response.text or ""
         except Exception as e:
             logger.error(f"Error calling Gemini API ({self.model_name}): {e}")
             # Try fallback model if primary fails
@@ -58,7 +58,7 @@ class GeminiClient:
                         contents=prompt,
                         config=config,
                     )
-                    return fallback_res.text
+                    return fallback_res.text or ""
                 except Exception as fb_err:
                     logger.error(f"Fallback call failed: {fb_err}")
             raise e
@@ -66,7 +66,7 @@ class GeminiClient:
     def generate_stream(
         self,
         prompt: str,
-        system_instruction: str = None,
+        system_instruction: Optional[str] = None,
         temperature: float = 0.2,
         top_p: float = 0.9,
     ) -> Iterator[str]:

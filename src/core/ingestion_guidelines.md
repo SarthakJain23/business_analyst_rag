@@ -44,9 +44,9 @@ class IngestionResult:
 def __init__(
     self,
     documents_dir: Path = settings.DOCUMENTS_DIR,
-    state_tracker: StateTracker = None,
-    vector_store: "VectorStoreManager" = None,
-    text_splitter: TextSplitter = None,
+    state_tracker: Optional[StateTracker] = None,
+    vector_store: Optional["VectorStoreManager"] = None,
+    text_splitter: Optional[TextSplitter] = None,
 ):
     from src.vector_store.store import VectorStoreManager
 
