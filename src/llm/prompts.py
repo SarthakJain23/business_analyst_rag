@@ -13,22 +13,3 @@ Your objective is to provide precise, insightful, and executive-ready answers ba
 Do NOT make up facts or extrapolate beyond what is documented in the context.
 """
 
-
-def build_rag_prompt(
-    user_query: str, retrieved_context_blocks: str, chat_history_str: str = ""
-) -> str:
-    """Constructs the prompt for Gemini RAG generation."""
-    prompt = f"""--- RETRIEVED BUSINESS CONTEXT ---
-{retrieved_context_blocks}
-----------------------------------
-
---- CONVERSATION HISTORY ---
-{chat_history_str if chat_history_str else "No prior conversation."}
-----------------------------
-
---- USER BUSINESS QUESTION ---
-{user_query}
-
-Provide a structured, data-driven Business Analyst response referencing the context above:
-"""
-    return prompt

@@ -53,7 +53,7 @@ business_analyst_rag/
     │   ├── state_tracker.py     # SHA-256 file hashing & incremental status
     │   └── text_splitter.py     # Recursive character text chunking
     ├── llm/                     # Gemini API client & RAG execution
-    │   ├── client.py            # Gemini API wrapper with retry logic
+    │   ├── graph.py             # LangGraph workflow pipeline definition
     │   ├── prompts.py           # Business Analyst persona prompt templates
     │   └── rag_engine.py        # Vector retrieval + streaming prompt pipeline
     ├── loaders/                 # Format-specific document extractors
@@ -91,8 +91,6 @@ cp .env.example .env
 Open `.env` and enter your **Google Gemini API Key**:
 ```env
 GOOGLE_API_KEY=your_actual_google_api_key_here
-GEMINI_LLM_MODEL=gemini-3.6-flash
-GEMINI_EMBEDDING_MODEL=gemini-embedding-001
 ```
 
 ### Step 3: Setup Virtual Environment & Install Dependencies
@@ -151,7 +149,7 @@ pip install -e .
 
 ## ⚙️ Configuration Reference
 
-All settings can be customized in `.env` or overridden programmatically in `src/config.py`:
+API keys are set in `.env`, while core application constants (models, paths, and retrieval defaults) are configured in `src/config.py`:
 
 | Parameter | Default | Description |
 | :--- | :--- | :--- |

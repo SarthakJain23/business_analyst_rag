@@ -42,7 +42,6 @@ class RAGState(TypedDict):
 def build_rag_graph(vector_store: VectorStoreManager, model_name: Optional[str] = None):
     """Builds and compiles a stateful RAG workflow using LangGraph."""
     llm_model = model_name or settings.GEMINI_LLM_MODEL
-    api_key = settings.GOOGLE_API_KEY or os.getenv("GOOGLE_API_KEY", "")
 
     prompt_template = ChatPromptTemplate.from_messages(
         [
@@ -111,7 +110,7 @@ def build_rag_graph(vector_store: VectorStoreManager, model_name: Optional[str] 
 
         active_llm = ChatGoogleGenerativeAI(
             model=llm_model,
-            google_api_key=api_key or "placeholder_key",
+            google_api_key=settings.GOOGLE_API_KEY or None,
             temperature=temp,
         )
 
