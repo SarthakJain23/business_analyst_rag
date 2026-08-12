@@ -30,10 +30,9 @@ env/
 venv/
 ENV/
 
-# Data and Vector Store (ignore persistent vectors & local state)
-data/vector_store/
-data/metadata/ingestion_state.json
-data/logs/
+# Data and Vector Store (ignore entire data directory)
+data/
+
 
 # Mac / System files
 .DS_Store
