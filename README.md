@@ -57,7 +57,7 @@ business_analyst_rag/
     │   ├── prompts.py           # Business Analyst persona prompt templates
     │   └── rag_engine.py        # Vector retrieval + streaming prompt pipeline
     ├── loaders/                 # Format-specific document extractors
-    │   ├── base.py              # Abstract BaseLoader and RawDocument dataclass
+    │   ├── base.py              # Abstract BaseLoader returning LangChain Document objects
     │   ├── docx_loader.py       # Microsoft Word parser
     │   ├── excel_loader.py      # Excel (.xlsx/.xls) & CSV table parser
     │   ├── factory.py           # Auto-detection loader factory

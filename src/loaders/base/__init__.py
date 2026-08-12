@@ -1,3 +1,3 @@
-from src.loaders.base.base import BaseLoader, RawDocument
+from src.loaders.base.base import BaseLoader
 
-__all__ = ["BaseLoader", "RawDocument"]
+__all__ = ["BaseLoader"]

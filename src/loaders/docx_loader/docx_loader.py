@@ -2,8 +2,9 @@ from pathlib import Path
 from typing import List
 
 import docx
+from langchain_core.documents import Document
 
-from src.loaders.base.base import BaseLoader, RawDocument
+from src.loaders.base.base import BaseLoader
 from src.utils.logger import get_logger
 
 logger = get_logger("docx_loader")
@@ -12,8 +13,8 @@ logger = get_logger("docx_loader")
 class DocxLoader(BaseLoader):
     """Loader for Microsoft Word (.docx) documents."""
 
-    def load(self, file_path: Path, file_hash: str) -> List[RawDocument]:
-        documents: List[RawDocument] = []
+    def load(self, file_path: Path, file_hash: str) -> List[Document]:
+        documents: List[Document] = []
         try:
             doc = docx.Document(str(file_path))
             full_text = []
@@ -38,7 +39,7 @@ class DocxLoader(BaseLoader):
                     "file_hash": file_hash,
                     "page_or_section": "Document Body",
                 }
-                documents.append(RawDocument(content=combined_content, metadata=metadata))
+                documents.append(Document(page_content=combined_content, metadata=metadata))
 
             logger.info(f"Successfully loaded DOCX document: {file_path.name}")
         except Exception as e:

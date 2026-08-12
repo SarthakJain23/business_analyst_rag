@@ -1,9 +1,10 @@
 from pathlib import Path
 from typing import List
 
+from langchain_core.documents import Document
 from pypdf import PdfReader
 
-from src.loaders.base.base import BaseLoader, RawDocument
+from src.loaders.base.base import BaseLoader
 from src.utils.logger import get_logger
 
 logger = get_logger("pdf_loader")
@@ -12,8 +13,8 @@ logger = get_logger("pdf_loader")
 class PDFLoader(BaseLoader):
     """Loader for PDF documents preserving page metadata."""
 
-    def load(self, file_path: Path, file_hash: str) -> List[RawDocument]:
-        documents: List[RawDocument] = []
+    def load(self, file_path: Path, file_hash: str) -> List[Document]:
+        documents: List[Document] = []
         try:
             reader = PdfReader(file_path)
             for idx, page in enumerate(reader.pages):
@@ -28,7 +29,7 @@ class PDFLoader(BaseLoader):
                         "page_or_section": f"Page {idx + 1}",
                         "total_pages": len(reader.pages),
                     }
-                    documents.append(RawDocument(content=text, metadata=metadata))
+                    documents.append(Document(page_content=text, metadata=metadata))
             logger.info(f"Successfully loaded {len(documents)} pages from PDF: {file_path.name}")
         except Exception as e:
             logger.error(f"Error reading PDF file {file_path}: {e}")

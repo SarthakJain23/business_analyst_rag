@@ -160,8 +160,7 @@ with st.sidebar:
         index=0,
     )
 
-    # Update model in client if changed
-    st.session_state.rag_engine.llm_client.model_name = model_option
+    st.session_state.rag_engine.set_model(model_option)
 
     temperature = st.slider("Temperature", min_value=0.0, max_value=1.0, value=0.2, step=0.05)
     top_k = st.slider(

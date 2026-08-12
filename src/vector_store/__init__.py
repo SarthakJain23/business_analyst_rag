@@ -1,3 +1,3 @@
-from src.vector_store.store import GeminiEmbeddingFunction, VectorStoreManager
+from src.vector_store.store import VectorStoreManager
 
-__all__ = ["VectorStoreManager", "GeminiEmbeddingFunction"]
+__all__ = ["VectorStoreManager"]

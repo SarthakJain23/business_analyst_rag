@@ -1,7 +1,9 @@
 from pathlib import Path
 from typing import List
 
-from src.loaders.base.base import BaseLoader, RawDocument
+from langchain_core.documents import Document
+
+from src.loaders.base.base import BaseLoader
 from src.utils.logger import get_logger
 
 logger = get_logger("text_loader")
@@ -10,8 +12,8 @@ logger = get_logger("text_loader")
 class TextLoader(BaseLoader):
     """Loader for plain text (.txt) and Markdown (.md) documents."""
 
-    def load(self, file_path: Path, file_hash: str) -> List[RawDocument]:
-        documents: List[RawDocument] = []
+    def load(self, file_path: Path, file_hash: str) -> List[Document]:
+        documents: List[Document] = []
         try:
             with open(file_path, "r", encoding="utf-8", errors="replace") as f:
                 content = f.read().strip()
@@ -24,7 +26,7 @@ class TextLoader(BaseLoader):
                     "file_hash": file_hash,
                     "page_or_section": "Document Content",
                 }
-                documents.append(RawDocument(content=content, metadata=metadata))
+                documents.append(Document(page_content=content, metadata=metadata))
 
             logger.info(f"Successfully loaded text document: {file_path.name}")
         except Exception as e:
