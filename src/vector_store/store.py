@@ -22,10 +22,10 @@ class VectorStoreManager:
         if not model_name.startswith("models/"):
             model_name = f"models/{model_name}"
 
-        api_key = settings.GOOGLE_API_KEY or os.getenv("GOOGLE_API_KEY", "")
         self.embedding_fn = GoogleGenerativeAIEmbeddings(
             model=model_name,
-            google_api_key=api_key or "placeholder_api_key",
+            google_api_key=settings.GOOGLE_API_KEY or None,
+            output_dimensionality=settings.EMBEDDING_DIMENSION,
         )
         self.vectorstore = Chroma(
             collection_name=settings.CHROMA_COLLECTION_NAME,
@@ -84,7 +84,7 @@ class VectorStoreManager:
                 query=query, k=top_k
             )
             for doc, score in results_with_score:
-                sim_score = round(float(score), 4)
+                sim_score = round(score, 4)
                 if sim_score >= similarity_threshold:
                     matched_items.append(
                         {
@@ -126,8 +126,8 @@ class VectorStoreManager:
 
         try:
             col_docs = self.vectorstore._collection.get()
-            raw_contents = col_docs.get("documents", [])
-            metadatas = col_docs.get("metadatas", [])
+            raw_contents = col_docs.get("documents") or []
+            metadatas = col_docs.get("metadatas") or []
             if raw_contents and len(raw_contents) > 0:
                 docs = [
                     Document(page_content=txt, metadata=meta or {})
