@@ -4,7 +4,7 @@
 
 This document outlines the design principles, architectural standards, directory structure, and engineering practices for the **Business Analyst RAG** system.
 
-The core objective of this project is to provide a clean, production-ready, modular RAG pipeline tailored for business document analysis (financial statements, market research, strategic decks, CSV/Excel data tables, meeting notes) with automated incremental file ingestion and local vector database storage.
+The core objective of this project is to provide a clean, production-ready, modular RAG pipeline tailored for business document analysis (financial statements, market research, strategic decks, CSV/Excel data tables, meeting notes) with automated incremental file ingestion, local ChromaDB storage, live thinking process streaming, and an autonomous Tool-Calling Agent workflow.
 
 ---
 
@@ -20,16 +20,23 @@ The core objective of this project is to provide a clean, production-ready, modu
    - **Loaders**: Parse raw files into standard `Document` objects.
    - **Core Engine**: Manage chunking, SHA-256 state tracking, and pipeline execution.
    - **Vector Store**: Abstract vector persistence and query operations.
-   - **LLM/RAG**: Manage Gemini API client, prompts, and context-augmented retrieval generation.
-   - **Streamlit App**: Presentation layer only (renders UI, handles user input, delegates logic).
+   - **LLM/RAG**: Orchestrate autonomous Tool-Calling agent workflows, system prompts, reasoning token parsing, and context synthesis.
+   - **Streamlit App**: Presentation layer rendering Chat Center upload banners, real-time agent status, thinking token containers, and message history.
 
-3. **Incremental & State-Aware Ingestion**:
+3. **Autonomous Tool-Calling Agent Architecture**:
+   - Vector search is encapsulated into a formal tool (`search_business_documents`).
+   - Gemini autonomously decides in a single streaming pass whether to call `search_business_documents` for document-specific questions or answer directly for general business concepts, greetings, and formulas.
+
+4. **Live Thinking & Decision Process Streaming**:
+   - Model reasoning enclosed within `<thinking>...</thinking>` tags is parsed token-by-token using `ThinkingStreamParser`.
+   - Streaming events (`status`, `thought`, `answer`) are rendered inside an interactive Streamlit status widget (`🧠 Agent Thinking & Decision Process`) and preserved in message history.
+
+5. **Chat Center Empty State Guidance**:
+   - When no documents are uploaded or indexed (`has_documents = False`), the main Chat Center displays a central upload hero banner with drag-and-drop file upload and ingestion controls.
+
+6. **Incremental & State-Aware Ingestion**:
    - File state is tracked using SHA-256 hashes in `data/metadata/ingestion_state.json`.
    - Re-ingesting untouched files is strictly avoided. Modified files trigger chunk replacement; deleted files trigger chunk eviction.
-
-4. **Business Analyst Centricity**:
-   - Tabular datasets (Excel/CSV) are converted to markdown tables to preserve cell relationships.
-   - LLM system prompts strictly enforce source citations, risk identification, trend extraction, and metric synthesis.
 
 ---
 
@@ -47,7 +54,7 @@ Click any link below to view the module-specific guidelines:
   _Guidelines for ChromaDB local persistence, Gemini embedding generation (`gemini-embedding-001`), and similarity retrieval._
 
 - 📂 [**src/llm/guidelines.md**](src/llm/guidelines.md)
-  _Guidelines for Google Gemini (`gemini-3.6-flash`), business analyst prompt engineering, context assembly, and RAG execution._
+  _Guidelines for Google Gemini (`gemini-3.6-flash`), Tool-Calling Agent graph (`graph.py`), `ThinkingStreamParser`, prompt engineering, and streaming execution (`rag_engine.py`)._
 
 - 📂 [**src/utils/guidelines.md**](src/utils/guidelines.md)
   _Guidelines for logging standards, exception handling, and shared helper routines._
@@ -62,3 +69,4 @@ Click any link below to view the module-specific guidelines:
 - **Execution**: `uv run streamlit run app.py`
 
 ---
+

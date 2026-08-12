@@ -1,7 +1,11 @@
 import os
+import warnings
 from typing import Any, Dict, List, Optional, TypedDict
 
-from langchain_core.prompts import ChatPromptTemplate
+warnings.filterwarnings("ignore", category=UserWarning, module="langchain_google_genai")
+
+from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
+from langchain_core.tools import tool
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.graph import END, START, StateGraph
 
@@ -28,110 +32,128 @@ def extract_text_content(content: Any) -> str:
     return str(content) if content is not None else ""
 
 
+def strip_thinking_tags(text: str) -> str:
+    """Removes <thinking>...</thinking> block from text if present."""
+    if "<thinking>" in text and "</thinking>" in text:
+        after_tag = text.split("</thinking>")[-1].strip()
+        return after_tag
+    return text.strip()
+
+
 class RAGState(TypedDict):
     question: str
     chat_history: str
     top_k: int
     similarity_threshold: float
     temperature: float
-    documents: List[Dict[str, Any]]
+    messages: List[BaseMessage]
     citations: List[Dict[str, Any]]
     generation: str
 
 
-def build_rag_graph(vector_store: VectorStoreManager, model_name: Optional[str] = None):
-    """Builds and compiles a stateful RAG workflow using LangGraph."""
-    llm_model = model_name or settings.GEMINI_LLM_MODEL
+def create_document_search_tool(
+    vector_store: VectorStoreManager,
+    top_k: int = 5,
+    similarity_threshold: float = 0.3,
+    citations_list: Optional[List[Dict[str, Any]]] = None,
+):
+    """Creates search_business_documents tool bound to the vector store."""
 
-    prompt_template = ChatPromptTemplate.from_messages(
-        [
-            ("system", BUSINESS_ANALYST_SYSTEM_PROMPT),
-            (
-                "human",
-                "Conversational Context:\n{chat_history}\n\nRetrieved Business Documents Context:\n{context}\n\nBusiness Analyst Query:\n{question}",
-            ),
-        ]
-    )
-
-    def retrieve_node(state: RAGState) -> Dict[str, Any]:
-        """Node 1: Retrieves candidate document chunks using Hybrid Vector + BM25 Retriever."""
-        question = state["question"]
-        top_k = state.get("top_k", settings.TOP_K_RETRIEVAL)
-        thresh = state.get("similarity_threshold", settings.SIMILARITY_THRESHOLD)
+    @tool
+    def search_business_documents(query: str) -> str:
+        """Searches indexed business documents, financial filings, quarterly reports, and company files for specific facts, figures, revenue numbers, and corporate data."""
+        stats = vector_store.get_stats()
+        if stats.get("total_chunks", 0) == 0:
+            return "No business documents are currently uploaded or indexed in the vector store. Please instruct the user to upload their document files (PDF, DOCX, CSV, Excel, TXT, MD) and click 'Sync & Ingest Documents'."
 
         matched_chunks = vector_store.search(
-            query=question,
+            query=query,
             top_k=top_k,
-            similarity_threshold=thresh,
+            similarity_threshold=similarity_threshold,
         )
 
-        citations = []
-        for match in matched_chunks:
-            meta = match.get("metadata", {})
-            citations.append(
-                {
-                    "file_name": meta.get("file_name", "Unknown File"),
-                    "source_file": meta.get("source_file", ""),
-                    "page_or_section": meta.get("page_or_section", "N/A"),
-                    "similarity_score": match.get("similarity_score", 0.0),
-                    "snippet": match.get("content", "")[:300] + "...",
-                }
-            )
+        if not matched_chunks:
+            return "No relevant business document chunks found in the vector store matching your search query."
 
-        return {"documents": matched_chunks, "citations": citations}
-
-    def generate_node(state: RAGState) -> Dict[str, Any]:
-        """Node 2: Generates response using Gemini LLM over retrieved contexts."""
-        documents = state.get("documents", [])
-        question = state["question"]
-        chat_history = state.get("chat_history", "")
-        temp = state.get("temperature", 0.2)
-
-        if not documents:
-            return {
-                "generation": "No relevant business documents found in the vector store matching your query. Please upload documents and click 'Sync & Ingest'."
-            }
+        if citations_list is not None:
+            for match in matched_chunks:
+                meta = match.get("metadata", {})
+                citations_list.append(
+                    {
+                        "file_name": meta.get("file_name", "Unknown File"),
+                        "source_file": meta.get("source_file", ""),
+                        "page_or_section": meta.get("page_or_section", "N/A"),
+                        "similarity_score": match.get("similarity_score", 0.0),
+                        "snippet": match.get("content", "")[:300] + "...",
+                    }
+                )
 
         blocks = []
-        for idx, match in enumerate(documents):
+        for idx, match in enumerate(matched_chunks):
             meta = match.get("metadata", {})
             file_name = meta.get("file_name", "Unknown File")
             page_sec = meta.get("page_or_section", "N/A")
             score = match.get("similarity_score", 0.0)
             text = match.get("content", "")
-
-            block = (
-                f"[Source #{idx + 1}: {file_name} | Location: {page_sec} | Match Score: {score}]\n"
-                f"{text}\n"
+            blocks.append(
+                f"[Source #{idx + 1}: {file_name} | Location: {page_sec} | Match Score: {score:.2f}]\n{text}\n"
             )
-            blocks.append(block)
 
-        context_str = "\n".join(blocks)
+        return "\n".join(blocks)
 
-        active_llm = ChatGoogleGenerativeAI(
-            model=llm_model,
-            google_api_key=settings.GOOGLE_API_KEY or None,
-            temperature=temp,
+    return search_business_documents
+
+
+def build_rag_graph(vector_store: VectorStoreManager, model_name: Optional[str] = None):
+    """Builds and compiles a stateful Tool-Calling RAG workflow using LangGraph."""
+    llm_model = model_name or settings.GEMINI_LLM_MODEL
+
+    def agent_node(state: RAGState) -> Dict[str, Any]:
+        question = state["question"]
+        chat_history = state.get("chat_history", "")
+        temp = state.get("temperature", 0.2)
+        top_k = state.get("top_k", settings.TOP_K_RETRIEVAL)
+        thresh = state.get("similarity_threshold", settings.SIMILARITY_THRESHOLD)
+
+        citations: List[Dict[str, Any]] = []
+        search_tool = create_document_search_tool(
+            vector_store, top_k=top_k, similarity_threshold=thresh, citations_list=citations
         )
 
-        chain = prompt_template | active_llm
-        res = chain.invoke(
-            {
-                "chat_history": chat_history,
-                "context": context_str,
-                "question": question,
-            }
-        )
+        api_key = settings.GOOGLE_API_KEY or os.getenv("GOOGLE_API_KEY", "")
+        llm_kwargs: Dict[str, Any] = {
+            "model": llm_model,
+            "google_api_key": api_key or None,
+        }
+        if temp is not None and "3.6" not in llm_model:
+            llm_kwargs["temperature"] = temp
 
-        return {"generation": extract_text_content(res.content)}
+        llm = ChatGoogleGenerativeAI(**llm_kwargs)
+        llm_with_tools = llm.bind_tools([search_tool])
+
+        prompt_messages = [
+            SystemMessage(content=BUSINESS_ANALYST_SYSTEM_PROMPT),
+            HumanMessage(
+                content=f"Conversational Context:\n{chat_history}\n\nUser Question:\n{question}"
+            ),
+        ]
+
+        state_messages = state.get("messages", [])
+        if not state_messages:
+            state_messages = prompt_messages
+
+        response = llm_with_tools.invoke(state_messages)
+        clean_gen = strip_thinking_tags(extract_text_content(response.content))
+        return {
+            "messages": state_messages + [response],
+            "generation": clean_gen,
+            "citations": citations,
+        }
 
     workflow = StateGraph(RAGState)
-    workflow.add_node("retrieve", retrieve_node)
-    workflow.add_node("generate", generate_node)
-
-    workflow.add_edge(START, "retrieve")
-    workflow.add_edge("retrieve", "generate")
-    workflow.add_edge("generate", END)
+    workflow.add_node("agent", agent_node)
+    workflow.add_edge(START, "agent")
+    workflow.add_edge("agent", END)
 
     app = workflow.compile()
     return app

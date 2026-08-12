@@ -31,12 +31,13 @@ st.markdown(
         color: #64748B;
         margin-bottom: 1.5rem;
     }
-    .metric-card {
+    .hero-card {
         background-color: #F8FAFC;
-        border: 1px solid #E2E8F0;
-        border-radius: 8px;
-        padding: 12px;
+        border: 2px dashed #CBD5E1;
+        border-radius: 12px;
+        padding: 24px;
         text-align: center;
+        margin-bottom: 1.5rem;
     }
     .citation-box {
         background-color: #F1F5F9;
@@ -80,6 +81,10 @@ if "rag_engine" not in st.session_state:
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
+stats = st.session_state.vector_store.get_stats()
+all_states = st.session_state.state_tracker.get_all_states()
+has_documents = len(all_states) > 0 and stats.get("total_chunks", 0) > 0
+
 # --- SIDEBAR ---
 with st.sidebar:
     st.title("📊 Business Analyst RAG")
@@ -93,6 +98,7 @@ with st.sidebar:
         "Upload Business Documents",
         type=["pdf", "docx", "xlsx", "xls", "csv", "txt", "md"],
         accept_multiple_files=True,
+        key="sidebar_uploader",
         help="Upload PDF, DOCX, Excel/CSV, or Text files to data/documents/",
     )
 
@@ -106,7 +112,7 @@ with st.sidebar:
         st.success(f"Saved {files_saved} file(s) to document folder!")
 
     # Ingestion Button
-    if st.button("🔄 Sync & Ingest Documents", width="stretch", type="primary"):
+    if st.button("🔄 Sync & Ingest Documents", width="stretch", type="primary", key="sidebar_sync"):
         with st.spinner("Processing document changes and updating vector index..."):
             progress_bar = st.progress(0)
             for i in range(50):
@@ -129,12 +135,12 @@ with st.sidebar:
             st.success(
                 f"Sync complete! Chunks added/updated: {result.processed_chunks}, Files evicted: {result.deleted_count}"
             )
+            st.rerun()
 
     st.markdown("---")
     st.subheader("📚 Document Library State")
 
     # Document Status Table
-    all_states = st.session_state.state_tracker.get_all_states()
     if all_states:
         table_data = []
         for path_str, state in all_states.items():
@@ -174,7 +180,6 @@ with st.sidebar:
         step=0.05,
     )
 
-    stats = st.session_state.vector_store.get_stats()
     st.markdown(f"**Total Chunks in Vector DB**: `{stats['total_chunks']}`")
 
     st.markdown("---")
@@ -186,6 +191,44 @@ st.markdown(
     '<div class="sub-title">Synthesize financial data, extract market insights, and analyze strategic business documents powered by Google Gemini</div>',
     unsafe_allow_html=True,
 )
+
+if not has_documents:
+    with st.container():
+        st.info(
+            "💡 **Getting Started**: Upload your business documents to enable context-grounded analysis!"
+        )
+        with st.expander("📁 **Upload Documents to Chat Center**", expanded=True):
+            st.markdown(
+                "Upload your financial reports, quarterly filings, strategic plans, or datasets (PDF, DOCX, CSV, Excel, TXT, MD) below to index them into ChromaDB."
+            )
+            center_uploaded = st.file_uploader(
+                "Select business documents",
+                type=["pdf", "docx", "xlsx", "xls", "csv", "txt", "md"],
+                accept_multiple_files=True,
+                key="center_uploader",
+            )
+            if center_uploaded:
+                saved = 0
+                for f in center_uploaded:
+                    t_path = settings.DOCUMENTS_DIR / f.name
+                    with open(t_path, "wb") as out_f:
+                        out_f.write(f.getbuffer())
+                    saved += 1
+                st.success(f"Saved {saved} file(s) to document folder!")
+
+            if st.button(
+                "🔄 Sync & Ingest Documents Now",
+                type="primary",
+                key="center_sync_btn",
+                width="stretch",
+            ):
+                with st.spinner("Indexing uploaded documents..."):
+                    res = st.session_state.ingestion_engine.run()
+                if res.errors:
+                    st.error(f"Ingestion finished with {len(res.errors)} error(s).")
+                else:
+                    st.success(f"Successfully indexed {res.processed_chunks} chunk(s)!")
+                    st.rerun()
 
 # Suggested Business Prompts
 st.caption("💡 **Quick Starter Questions**:")
@@ -211,6 +254,14 @@ with col4:
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
+        if msg.get("thoughts") or msg.get("decision_log"):
+            with st.expander("🧠 View Agent Thinking & Decision Process", expanded=False):
+                if msg.get("decision_log"):
+                    st.markdown("\n\n".join(msg["decision_log"]))
+                if msg.get("thoughts"):
+                    st.markdown("--- \n**💭 Thought Process:**")
+                    st.markdown(f"```text\n{msg['thoughts']}\n```")
+
         if "citations" in msg and msg["citations"]:
             with st.expander("📚 Source Citations & References", expanded=False):
                 for idx, cit in enumerate(msg["citations"]):
@@ -220,7 +271,7 @@ for msg in st.session_state.messages:
                     )
 
 # Process User Input
-prompt_input = st.chat_input("Ask a question about your business documents...")
+prompt_input = st.chat_input("Ask a question about business concepts or uploaded documents...")
 final_query = selected_prompt or prompt_input
 
 if final_query:
@@ -231,7 +282,15 @@ if final_query:
 
     # Generate assistant response
     with st.chat_message("assistant"):
+        status_container = st.status("🧠 Agent Thinking & Decision Process", expanded=True)
+        status_log_placeholder = status_container.empty()
+        thought_header_placeholder = status_container.empty()
+        thought_content_placeholder = status_container.empty()
         message_placeholder = st.empty()
+
+        status_logs = []
+        accumulated_thoughts = ""
+        full_response = ""
 
         # Build history string
         history_str = "\n".join(
@@ -247,12 +306,25 @@ if final_query:
                 temperature=temperature,
             )
 
-            full_response = ""
-            for chunk in stream_iter:
-                full_response += chunk
-                message_placeholder.markdown(full_response + "▌")
+            for event_type, payload in stream_iter:
+                if event_type == "status":
+                    status_logs.append(payload)
+                    status_log_placeholder.markdown("\n\n".join(status_logs))
+                elif event_type == "thought":
+                    if not accumulated_thoughts:
+                        thought_header_placeholder.markdown(
+                            "--- \n**💭 Model Reasoning Thought Process:**"
+                        )
+                    accumulated_thoughts += payload
+                    thought_content_placeholder.markdown(f"```text\n{accumulated_thoughts}\n```")
+                elif event_type == "answer":
+                    full_response += payload
+                    message_placeholder.markdown(full_response + "▌")
 
             message_placeholder.markdown(full_response)
+            status_container.update(
+                label="🧠 Agent Decision Process Complete", state="complete", expanded=False
+            )
 
             if citations:
                 with st.expander("📚 Source Citations & References", expanded=False):
@@ -268,8 +340,13 @@ if final_query:
                     "role": "assistant",
                     "content": full_response,
                     "citations": citations,
+                    "thoughts": accumulated_thoughts,
+                    "decision_log": status_logs,
                 }
             )
 
         except Exception as e:
+            status_container.update(
+                label="⚠️ Error in Agent Processing", state="error", expanded=True
+            )
             st.error(f"Error generating response: {str(e)}")
