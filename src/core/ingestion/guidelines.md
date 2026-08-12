@@ -6,9 +6,9 @@ The [`ingestion.py`](ingestion.py) module serves as the **unified orchestrator**
 
 It connects:
 
-- [`StateTracker`](state_tracker.py) (Incremental change detection & SHA-256 state)
-- [`LoaderFactory`](../loaders/factory/factory.py) (Multi-format document loaders)
-- [`TextSplitter`](text_splitter.py) (Recursive text chunking)
+- [`StateTracker`](../state_tracker/guidelines.md) (Incremental change detection & SHA-256 state)
+- [`LoaderFactory`](../../loaders/factory/guidelines.md) (Multi-format document loaders)
+- [`TextSplitter`](../text_splitter/guidelines.md) (Recursive text chunking)
 - `VectorStoreManager` (ChromaDB vector embedding & deletion)
 
 ---
