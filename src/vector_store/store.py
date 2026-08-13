@@ -155,3 +155,18 @@ class VectorStoreManager:
             "collection_name": settings.CHROMA_COLLECTION_NAME,
             "vector_store_path": self.persist_dir,
         }
+
+    def clear_all(self) -> None:
+        """Deletes all vectors and resets ChromaDB collection."""
+        try:
+            self.vectorstore.delete_collection()
+            self.vectorstore = Chroma(
+                collection_name=settings.CHROMA_COLLECTION_NAME,
+                embedding_function=self.embedding_fn,
+                persist_directory=self.persist_dir,
+                collection_metadata={"hnsw:space": "cosine"},
+            )
+            logger.info("Cleared all vector store data and re-initialized ChromaDB collection.")
+        except Exception as e:
+            logger.error(f"Error clearing vector store collection: {e}")
+

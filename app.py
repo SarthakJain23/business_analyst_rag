@@ -180,10 +180,50 @@ with st.sidebar:
         step=0.05,
     )
 
+@st.dialog("🗑️ Confirm Clear All Memory & Data")
+def confirm_clear_dialog():
+    st.warning("⚠️ **Warning**: This action is permanent and cannot be undone!")
+    st.markdown(
+        """
+        The following resources will be permanently wiped:
+        - 💬 **Conversational Chat History**
+        - 📚 **ChromaDB Vector Embeddings Index**
+        - 📋 **Ingestion Tracker Metadata**
+        - 📁 **Uploaded Document Files** (`data/documents/`)
+        """
+    )
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("Cancel", width="stretch", key="modal_cancel_clear"):
+            st.rerun()
+    with col2:
+        if st.button("Yes, Clear Everything", type="primary", width="stretch", key="modal_confirm_clear"):
+            st.session_state.messages = []
+            st.session_state.state_tracker.clear_all()
+            st.session_state.vector_store.clear_all()
+            if settings.DOCUMENTS_DIR.exists():
+                for doc_file in settings.DOCUMENTS_DIR.glob("*"):
+                    if doc_file.is_file() and not doc_file.name.startswith("."):
+                        try:
+                            doc_file.unlink()
+                        except Exception as e:
+                            pass
+
+            st.success("Successfully cleared all memory and data!")
+            time.sleep(0.8)
+            st.rerun()
+
+
     st.markdown(f"**Total Chunks in Vector DB**: `{stats['total_chunks']}`")
 
     st.markdown("---")
+    st.subheader("🗑️ Reset & Memory")
+    if st.button("🗑️ Clear All Memory & Data", width="stretch", type="secondary", key="sidebar_clear_all"):
+        confirm_clear_dialog()
+
+    st.markdown("---")
     st.markdown("📖 [Master Guidelines](guidelines.md)")
+
 
 # --- MAIN PANEL ---
 st.markdown('<div class="main-title">Business Analyst RAG Assistant</div>', unsafe_allow_html=True)

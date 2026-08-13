@@ -249,7 +249,7 @@ class RAGEngine:
                 "google_api_key": api_key or None,
                 "streaming": True,
             }
-            if temperature is not None and "3.6" not in str(self.model_name):
+            if temperature is not None and "3.6" not in self.model_name:
                 llm_kwargs["temperature"] = temperature
 
             llm = ChatGoogleGenerativeAI(**llm_kwargs)

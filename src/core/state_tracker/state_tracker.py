@@ -135,3 +135,14 @@ class StateTracker:
 
     def get_all_states(self) -> Dict[str, FileState]:
         return self._state.copy()
+
+    def clear_all(self) -> None:
+        """Clears all recorded file ingestion states and removes state file from disk."""
+        self._state = {}
+        if self.state_file.exists():
+            try:
+                self.state_file.unlink()
+                logger.info(f"Deleted ingestion state file: {self.state_file}")
+            except Exception as e:
+                logger.error(f"Failed to delete ingestion state file {self.state_file}: {e}")
+
