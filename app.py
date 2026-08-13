@@ -5,6 +5,15 @@ import streamlit as st
 from src.config import settings
 from src.core.ingestion import IngestionEngine
 from src.core.state_tracker import StateTracker
+from src.embeddings import (
+    VENDOR_LABELS,
+    EmbeddingProvider,
+    EmbeddingVendor,
+    get_embedding_function,
+    get_model_dimension,
+    get_model_names,
+    reset_embedding_instance,
+)
 from src.llm.rag_engine import RAGEngine
 from src.vector_store.store import VectorStoreManager
 
@@ -180,24 +189,131 @@ with st.sidebar:
         step=0.05,
     )
 
+    st.markdown("---")
+    st.subheader("🧬 Embedding Configuration")
+
+    vendor_options = [v.value for v in EmbeddingVendor]
+    active_vendor_setting = st.session_state.get(
+        "active_embedding_vendor", settings.EMBEDDING_VENDOR
+    )
+    default_vendor_idx = (
+        vendor_options.index(active_vendor_setting)
+        if active_vendor_setting in vendor_options
+        else 0
+    )
+
+    selected_vendor_str = st.selectbox(
+        "Embedding Vendor",
+        options=vendor_options,
+        format_func=lambda v: VENDOR_LABELS.get(EmbeddingVendor(v), v),
+        index=default_vendor_idx,
+        key="sidebar_embedding_vendor",
+    )
+
+    selected_vendor_enum = EmbeddingVendor(selected_vendor_str)
+    model_options = get_model_names(selected_vendor_enum)
+    selected_model_str = st.selectbox(
+        "Embedding Model",
+        options=model_options,
+        index=0,
+        key="sidebar_embedding_model",
+    )
+
+    dim = get_model_dimension(selected_vendor_enum, selected_model_str)
+    st.caption(f"Output Dimension: `{dim}` | Vendor: `{selected_vendor_str}`")
+
+    if "active_embedding_vendor" not in st.session_state:
+        st.session_state.active_embedding_vendor = selected_vendor_str
+        st.session_state.active_embedding_model = selected_model_str
+
+
+@st.dialog("🔄 Confirm Embedding Vendor Switch")
+def confirm_vendor_switch_dialog(new_vendor: str, new_model: str):
+    st.warning("⚠️ **Warning**: Changing embedding vendor will re-index all documents!")
+    st.markdown(f"""
+        Switching to **{VENDOR_LABELS.get(EmbeddingVendor(new_vendor), new_vendor)}** (`{new_model}`) requires wiping existing vector embeddings:
+        - 📚 **ChromaDB Vector Embeddings Index** will be cleared
+        - 📋 **Ingestion Tracker Metadata** will be reset
+        - 🔄 **Document Library** will be re-ingested with the new embedding model
+        """)
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("Cancel", width="stretch", key="modal_cancel_vendor_switch"):
+            st.rerun()
+    with col2:
+        if st.button(
+            "Switch & Re-ingest", type="primary", width="stretch", key="modal_confirm_vendor_switch"
+        ):
+            st.session_state.vector_store.clear_all()
+            st.session_state.state_tracker.clear_all()
+            reset_embedding_instance()
+            new_emb = get_embedding_function(
+                vendor=EmbeddingVendor(new_vendor), model_name=new_model
+            )
+            st.session_state.vector_store = VectorStoreManager(embedding_fn=new_emb)
+            st.session_state.ingestion_engine = IngestionEngine(
+                state_tracker=st.session_state.state_tracker,
+                vector_store=st.session_state.vector_store,
+            )
+            st.session_state.rag_engine = RAGEngine(
+                vector_store=st.session_state.vector_store,
+            )
+            st.session_state.active_embedding_vendor = new_vendor
+            st.session_state.active_embedding_model = new_model
+            if settings.DOCUMENTS_DIR.exists() and any(settings.DOCUMENTS_DIR.glob("*")):
+                res = st.session_state.ingestion_engine.run()
+                st.success(
+                    f"Successfully switched to {new_vendor} and re-indexed {res.processed_chunks} chunk(s)!"
+                )
+            else:
+                st.success(f"Successfully switched to {new_vendor}!")
+            time.sleep(0.8)
+            st.rerun()
+
+
+# Trigger vendor switch dialog if vendor/model changed
+if "active_embedding_vendor" in st.session_state and (
+    selected_vendor_str != st.session_state.active_embedding_vendor
+    or selected_model_str != st.session_state.active_embedding_model
+):
+    if not has_documents:
+        reset_embedding_instance()
+        new_emb = get_embedding_function(vendor=selected_vendor_enum, model_name=selected_model_str)
+        st.session_state.vector_store = VectorStoreManager(embedding_fn=new_emb)
+        st.session_state.ingestion_engine = IngestionEngine(
+            state_tracker=st.session_state.state_tracker,
+            vector_store=st.session_state.vector_store,
+        )
+        st.session_state.rag_engine = RAGEngine(
+            vector_store=st.session_state.vector_store,
+        )
+        st.session_state.active_embedding_vendor = selected_vendor_str
+        st.session_state.active_embedding_model = selected_model_str
+        st.toast(
+            f"Switched embedding to {VENDOR_LABELS.get(selected_vendor_enum, selected_vendor_str)} ({selected_model_str})"
+        )
+    else:
+        confirm_vendor_switch_dialog(selected_vendor_str, selected_model_str)
+
+
 @st.dialog("🗑️ Confirm Clear All Memory & Data")
 def confirm_clear_dialog():
     st.warning("⚠️ **Warning**: This action is permanent and cannot be undone!")
-    st.markdown(
-        """
+    st.markdown("""
         The following resources will be permanently wiped:
         - 💬 **Conversational Chat History**
         - 📚 **ChromaDB Vector Embeddings Index**
         - 📋 **Ingestion Tracker Metadata**
         - 📁 **Uploaded Document Files** (`data/documents/`)
-        """
-    )
+        """)
     col1, col2 = st.columns(2)
     with col1:
         if st.button("Cancel", width="stretch", key="modal_cancel_clear"):
             st.rerun()
     with col2:
-        if st.button("Yes, Clear Everything", type="primary", width="stretch", key="modal_confirm_clear"):
+        if st.button(
+            "Yes, Clear Everything", type="primary", width="stretch", key="modal_confirm_clear"
+        ):
             st.session_state.messages = []
             st.session_state.state_tracker.clear_all()
             st.session_state.vector_store.clear_all()
@@ -213,12 +329,13 @@ def confirm_clear_dialog():
             time.sleep(0.8)
             st.rerun()
 
-
     st.markdown(f"**Total Chunks in Vector DB**: `{stats['total_chunks']}`")
 
     st.markdown("---")
     st.subheader("🗑️ Reset & Memory")
-    if st.button("🗑️ Clear All Memory & Data", width="stretch", type="secondary", key="sidebar_clear_all"):
+    if st.button(
+        "🗑️ Clear All Memory & Data", width="stretch", type="secondary", key="sidebar_clear_all"
+    ):
         confirm_clear_dialog()
 
     st.markdown("---")

@@ -145,4 +145,3 @@ class StateTracker:
                 logger.info(f"Deleted ingestion state file: {self.state_file}")
             except Exception as e:
                 logger.error(f"Failed to delete ingestion state file {self.state_file}: {e}")
-

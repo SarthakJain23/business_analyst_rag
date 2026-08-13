@@ -1,13 +1,14 @@
 import os
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from langchain_chroma import Chroma
 from langchain_classic.retrievers import EnsembleRetriever
 from langchain_community.retrievers.bm25 import BM25Retriever
 from langchain_core.documents import Document
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_core.embeddings import Embeddings
 
 from src.config import settings
+from src.embeddings import get_embedding_function
 from src.utils.logger import get_logger
 
 logger = get_logger("vector_store")
@@ -16,17 +17,9 @@ logger = get_logger("vector_store")
 class VectorStoreManager:
     """Manages local ChromaDB persistence and hybrid retrieval using LangChain."""
 
-    def __init__(self):
+    def __init__(self, embedding_fn: Optional[Embeddings] = None):
         self.persist_dir = str(settings.VECTOR_STORE_DIR.resolve())
-        model_name = settings.GEMINI_EMBEDDING_MODEL
-        if not model_name.startswith("models/"):
-            model_name = f"models/{model_name}"
-
-        self.embedding_fn = GoogleGenerativeAIEmbeddings(
-            model=model_name,
-            google_api_key=settings.GOOGLE_API_KEY or None,
-            output_dimensionality=settings.EMBEDDING_DIMENSION,
-        )
+        self.embedding_fn = embedding_fn or get_embedding_function()
         self.vectorstore = Chroma(
             collection_name=settings.CHROMA_COLLECTION_NAME,
             embedding_function=self.embedding_fn,
@@ -169,4 +162,3 @@ class VectorStoreManager:
             logger.info("Cleared all vector store data and re-initialized ChromaDB collection.")
         except Exception as e:
             logger.error(f"Error clearing vector store collection: {e}")
-

@@ -15,10 +15,13 @@ class Settings:
     BASE_DIR: Path = BASE_DIR
 
     GOOGLE_API_KEY: str = os.getenv("GOOGLE_API_KEY", "")
+    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
 
     GEMINI_LLM_MODEL: str = "gemini-3.6-flash"
-    GEMINI_EMBEDDING_MODEL: str = "gemini-embedding-001"
-    EMBEDDING_DIMENSION: int = 1536
+
+    EMBEDDING_VENDOR: str = os.getenv("EMBEDDING_VENDOR", "google")
+    EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "gemini-embedding-001")
+    EMBEDDING_DIMENSION: int = int(os.getenv("EMBEDDING_DIMENSION", "1536"))
 
     DOCUMENTS_DIR: Path = BASE_DIR / "data/documents"
     VECTOR_STORE_DIR: Path = BASE_DIR / "data/vector_store"
