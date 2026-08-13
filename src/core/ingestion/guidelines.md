@@ -1,21 +1,20 @@
 # Ingestion Engine Guidelines (`ingestion.py`)
 
-## Overview
+## Folder & File Context
 
-The [`ingestion.py`](ingestion.py) module serves as the **unified orchestrator** for the document ingestion pipeline. It coordinates document loading, state management, text chunking, and vector database synchronization into an atomic, incremental workflow.
+The [`src/core/ingestion/`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/core/ingestion) folder houses [`ingestion.py`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/core/ingestion/ingestion.py), which serves as the **unified orchestrator** for the document ingestion and indexing pipeline.
 
-It connects:
-
-- [`StateTracker`](../state_tracker/guidelines.md) (Incremental change detection & SHA-256 state)
-- [`LoaderFactory`](../../loaders/factory/guidelines.md) (Multi-format document loaders)
-- [`TextSplitter`](../text_splitter/guidelines.md) (Recursive text chunking)
-- `VectorStoreManager` (ChromaDB vector embedding & deletion)
+It connects four key subsystems into an atomic, incremental ingestion workflow:
+1. Change Detection & State Tracking: [`StateTracker`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/core/state_tracker/state_tracker.py#L32-L148)
+2. Document Parsing: [`LoaderFactory`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/factory/factory.py#L16-L41)
+3. Text Chunking: [`TextSplitter`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/core/text_splitter/text_splitter.py#L9-L44)
+4. Vector Database Storage: [`VectorStoreManager`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/vector_store/store.py#L16-L172)
 
 ---
 
-## Code Structure & Part-by-Part Explanation
+## Detailed Code Explanation & Method Breakdown
 
-### 1. Ingestion Output Container (`IngestionResult`)
+### 1. Ingestion Output Dataclass ([`IngestionResult`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/core/ingestion/ingestion.py#L15-L21))
 
 ```python
 @dataclass
@@ -27,162 +26,63 @@ class IngestionResult:
     documents_status: Dict[str, Any]
 ```
 
-- **Logic**: A structured summary object returned after executing an ingestion cycle:
-  - `added_or_modified_count`: Count of new or updated files detected on disk.
-  - `deleted_count`: Count of removed files evicted from vector storage.
-  - `processed_chunks`: Total count of new vector embeddings added to ChromaDB.
-  - `errors`: List of descriptive failure messages encountered during document processing.
-  - `documents_status`: Complete dictionary snapshot of tracked document states for UI tables.
+- **Purpose**: Structure passed to UI components ([`app.py`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/app.py)) summarizing execution metrics after an ingestion run.
 
 ---
 
-### 2. Orchestrator Engine (`IngestionEngine`)
+### 2. Orchestrator Class ([`IngestionEngine`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/core/ingestion/ingestion.py#L24-L100))
 
-#### Constructor (`__init__`)
+#### Constructor: [`__init__`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/core/ingestion/ingestion.py#L27-L37)
+- **Logic**: Instantiates default implementations for [`StateTracker`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/core/state_tracker/state_tracker.py#L32-L148), [`VectorStoreManager`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/vector_store/store.py#L16-L172), and [`TextSplitter`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/core/text_splitter/text_splitter.py#L9-L44) if not explicitly injected. Uses lazy imports where needed to break circular dependencies.
 
-```python
-def __init__(
-    self,
-    documents_dir: Path = settings.DOCUMENTS_DIR,
-    state_tracker: Optional[StateTracker] = None,
-    vector_store: Optional["VectorStoreManager"] = None,
-    text_splitter: Optional[TextSplitter] = None,
-):
-    from src.vector_store.store import VectorStoreManager
-
-    self.documents_dir = documents_dir
-    self.state_tracker = state_tracker or StateTracker()
-    self.vector_store = vector_store or VectorStoreManager()
-    self.text_splitter = text_splitter or TextSplitter()
-```
-
-- **Logic**: Initializes pipeline dependencies with default implementations if omitted. Uses local import for `VectorStoreManager` to break potential circular import dependencies.
+#### Main Execution Pipeline: [`run()`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/core/ingestion/ingestion.py#L39-L100)
+- **Phase 1: Incremental Change Detection** ([L42-L44](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/core/ingestion/ingestion.py#L42-L44)):
+  Invokes [`StateTracker.detect_changes(...)`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/core/state_tracker/state_tracker.py#L79-L111) to inspect `data/documents/` and obtain `(added_modified, deleted_paths, unchanged)`.
+- **Phase 2: Deleted Vector Eviction** ([L49-L52](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/core/ingestion/ingestion.py#L49-L52)):
+  Iterates over `deleted_paths`, calling [`VectorStoreManager.delete_by_file_path(...)`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/vector_store/store.py#L57-L69) and [`StateTracker.remove_file_state(...)`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/core/state_tracker/state_tracker.py#L132-L134).
+- **Phase 3: Added & Modified Processing** ([L54-L85](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/core/ingestion/ingestion.py#L54-L85)):
+  - Validates file format via [`LoaderFactory.is_supported(...)`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/factory/factory.py#L39-L41).
+  - Evicts stale vectors for modified files using [`delete_by_file_path`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/vector_store/store.py#L57-L69).
+  - Fetches loader instance from [`LoaderFactory.get_loader(...)`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/factory/factory.py#L29-L37) and loads raw document pages.
+  - Splits text into chunked `Document` objects with [`TextSplitter.split_documents(...)`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/core/text_splitter/text_splitter.py#L23-L44).
+  - Embeds chunks into ChromaDB with [`VectorStoreManager.add_chunks(...)`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/vector_store/store.py#L53-L55) and updates [`StateTracker`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/core/state_tracker/state_tracker.py#L113-L130).
+- **Phase 4: Persistence** ([L87](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/core/ingestion/ingestion.py#L87)):
+  Saves updated state JSON to disk via [`StateTracker.save_state()`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/core/state_tracker/state_tracker.py#L69-L77) and returns [`IngestionResult`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/core/ingestion/ingestion.py#L15-L21).
 
 ---
 
-#### Execution Pipeline (`run`)
-
-```python
-def run(self) -> IngestionResult:
-```
-
-- **Phase 1: Incremental Change Detection**
-
-  ```python
-  added_modified, deleted_paths, unchanged = self.state_tracker.detect_changes(
-      self.documents_dir
-  )
-  ```
-
-  Compares disk contents in `data/documents/` against recorded SHA-256 hashes in `ingestion_state.json`. Unchanged files are bypassed automatically.
-
-- **Phase 2: Vector & State Eviction for Deleted Files**
-
-  ```python
-  for path_str in deleted_paths:
-      logger.info(f"Evicting deleted file vectors: {path_str}")
-      self.vector_store.delete_by_file_path(path_str)
-      self.state_tracker.remove_file_state(path_str)
-  ```
-
-  Deletes all existing vector embeddings matching `path_str` from ChromaDB and purges the file record from `StateTracker`.
-
-- **Phase 3: Processing Added or Modified Files**
-
-  ```python
-  for file_path in added_modified:
-      path_str = str(file_path.resolve())
-      file_hash = self.state_tracker.calculate_file_hash(file_path)
-
-      if not LoaderFactory.is_supported(file_path):
-          logger.warning(f"Skipping unsupported file format: {file_path.name}")
-          continue
-
-      try:
-          # Delete stale vectors if file was modified
-          self.vector_store.delete_by_file_path(path_str)
-
-          # Load raw documents
-          loader = LoaderFactory.get_loader(file_path)
-          raw_docs = loader.load(file_path, file_hash)
-
-          # Chunk text
-          chunks = self.text_splitter.split_documents(raw_docs)
-
-          # Upsert chunks into Vector Store & update state
-          if chunks:
-              added_count = self.vector_store.add_chunks(chunks)
-              total_chunks_added += added_count
-              self.state_tracker.update_file_state(
-                  file_path, file_hash, len(chunks), status=FileStatus.INDEXED
-              )
-          else:
-              self.state_tracker.update_file_state(
-                  file_path, file_hash, 0, status=FileStatus.EMPTY
-              )
-
-      except Exception as e:
-          err_msg = f"Failed to ingest file {file_path.name}: {str(e)}"
-          logger.error(err_msg)
-          errors.append(err_msg)
-          self.state_tracker.update_file_state(
-              file_path, file_hash, 0, status=f"{FileStatus.FAILED}: {str(e)}"
-          )
-  ```
-
-- **Phase 4: Persistence & Summary Return**
-  ```python
-  self.state_tracker.save_state()
-  return IngestionResult(...)
-  ```
-  Saves the updated state to `data/metadata/ingestion_state.json` and logs pipeline metrics.
-
----
-
-## Complete Ingestion Workflow Diagram
+## Workflow Diagram
 
 ```mermaid
 sequenceDiagram
-    participant App as Streamlit App
-    participant Engine as IngestionEngine
+    participant UI as Streamlit UI (app.py)
+    participant Engine as IngestionEngine (run)
     participant Tracker as StateTracker
     participant Factory as LoaderFactory
     participant Splitter as TextSplitter
-    participant Store as VectorStoreManager
+    participant DB as VectorStoreManager (ChromaDB)
 
-    App->>Engine: run()
+    UI->>Engine: run()
     Engine->>Tracker: detect_changes(documents_dir)
     Tracker-->>Engine: (added_modified, deleted_paths, unchanged)
 
-    alt Deleted Files Processing
-        loop For each deleted path
-            Engine->>Store: delete_by_file_path(path_str)
-            Engine->>Tracker: remove_file_state(path_str)
-        end
+    loop Deleted Files
+        Engine->>DB: delete_by_file_path(path_str)
+        Engine->>Tracker: remove_file_state(path_str)
     end
 
-    alt Added / Modified Files Processing
-        loop For each added/modified file
-            Engine->>Store: delete_by_file_path(path_str)
-            Engine->>Factory: get_loader(file_path)
-            Factory-->>Engine: loader instance
-            Engine->>loader: load(file_path, file_hash)
-            loader-->>Engine: raw_docs
-            Engine->>Splitter: split_documents(raw_docs)
-            Splitter-->>Engine: chunks
-            Engine->>Store: add_chunks(chunks)
-            Engine->>Tracker: update_file_state(..., FileStatus.INDEXED)
-        end
+    loop Added/Modified Files
+        Engine->>DB: delete_by_file_path(path_str)
+        Engine->>Factory: get_loader(file_path)
+        Factory-->>Engine: loader instance
+        Engine->>loader: load(file_path, file_hash)
+        loader-->>Engine: raw_docs
+        Engine->>Splitter: split_documents(raw_docs)
+        Splitter-->>Engine: chunks
+        Engine->>DB: add_chunks(chunks)
+        Engine->>Tracker: update_file_state(..., FileStatus.INDEXED)
     end
 
     Engine->>Tracker: save_state()
-    Engine-->>App: IngestionResult
+    Engine-->>UI: IngestionResult
 ```
-
----
-
-## Best Practices & Guidelines for Developers
-
-1. **Atomic Ingestion Cycles**: Always call `save_state()` at the conclusion of `run()` so file state on disk matches vector store contents.
-2. **Pre-Eviction Before Re-indexing**: When a file is modified, delete its existing vectors (`delete_by_file_path`) _before_ adding new chunks to prevent orphan or stale vectors in ChromaDB.
-3. **Resilient Exception Catching**: Catch per-file exceptions during parsing/embedding so a single corrupted file does not crash the entire ingestion loop for other documents.

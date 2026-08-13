@@ -1,50 +1,32 @@
-# Loader Factory Guidelines & Explanation (`factory.py`)
+# Loader Factory Guidelines (`factory.py`)
 
-## Overview
+## Folder & File Context
 
-The [`factory.py`](factory.py) module implements the Factory Pattern via the `LoaderFactory` class. It acts as a single point of dispatch for instantiating the appropriate document loader ([`PDFLoader`](../pdf_loader/pdf_loader.py), [`DocxLoader`](../docx_loader/docx_loader.py), [`ExcelCSVLoader`](../excel_loader/excel_loader.py), or [`TextLoader`](../text_loader/text_loader.py)) based on a given file's extension.
+The [`src/loaders/factory/`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/factory) directory contains [`factory.py`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/factory/factory.py), which implements the Factory Pattern via [`LoaderFactory`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/factory/factory.py#L16-L41).
+
+It acts as a single point of dispatch for instantiating the appropriate loader based on a target file's extension.
 
 ---
 
-## Key Classes & Code Flow
+## Detailed Code Explanation & Method Breakdown
 
-### 1. `UnsupportedFormatError` Exception ([factory.py:L8](factory.py#L8))
+### 1. Custom Exception ([`UnsupportedFormatError`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/factory/factory.py#L10-L13))
+- Exception subclass raised when encountering unregistered file extensions.
 
-Custom exception subclass of `Exception` raised when an unsupported file format or extension is passed to the factory.
+### 2. Loader Registry ([`LoaderFactory._LOADERS`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/factory/factory.py#L19-L27))
 
-### 2. `LoaderFactory` Registry (`_LOADERS`) ([factory.py:L15-L23](factory.py#L15-L23))
+| File Extension | Loader Class | Implementation Module |
+| :--- | :--- | :--- |
+| `.pdf` | [`PDFLoader`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/pdf_loader/pdf_loader.py#L13-L38) | [`src.loaders.pdf_loader`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/pdf_loader/pdf_loader.py) |
+| `.docx` | [`DocxLoader`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/docx_loader/docx_loader.py#L13-L49) | [`src.loaders.docx_loader`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/docx_loader/docx_loader.py) |
+| `.xlsx`, `.xls`, `.csv` | [`ExcelCSVLoader`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/excel_loader/excel_loader.py#L13-L56) | [`src.loaders.excel_loader`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/excel_loader/excel_loader.py) |
+| `.txt`, `.md` | [`TextLoader`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/text_loader/text_loader.py#L12-L36) | [`src.loaders.text_loader`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/text_loader/text_loader.py) |
 
-Internal class dictionary mapping file extension strings (lowercase) to loader classes:
+---
 
-| Extension               | Loader Class     | Submodule                  |
-| :---------------------- | :--------------- | :------------------------- |
-| `.pdf`                  | `PDFLoader`      | `src.loaders.pdf_loader`   |
-| `.docx`                 | `DocxLoader`     | `src.loaders.docx_loader`  |
-| `.xlsx`, `.xls`, `.csv` | `ExcelCSVLoader` | `src.loaders.excel_loader` |
-| `.txt`, `.md`           | `TextLoader`     | `src.loaders.text_loader`  |
+### 3. Factory Class Methods
 
-### 3. Factory Method: `get_loader` ([factory.py:L25-L31](factory.py#L25-L31))
-
-```python
-@classmethod
-def get_loader(cls, file_path: Path) -> BaseLoader:
-    ext = file_path.suffix.lower()
-    loader_cls = cls._LOADERS.get(ext)
-    if not loader_cls:
-        raise UnsupportedFormatError(f"Unsupported file extension '{ext}' for file {file_path.name}")
-    return loader_cls()
-```
-
-- Extracts file extension using `file_path.suffix.lower()`.
-- Looks up the corresponding loader class in `_LOADERS`.
-- Instantiates and returns the loader object, or raises `UnsupportedFormatError` if missing.
-
-### 4. Utility Method: `is_supported` ([factory.py:L33-L35](factory.py#L33-L35))
-
-```python
-@classmethod
-def is_supported(cls, file_path: Path) -> bool:
-    return file_path.suffix.lower() in cls._LOADERS
-```
-
-Checks if a file extension is registered in the factory registry without throwing an exception.
+- [`LoaderFactory.get_loader(file_path: Path) -> BaseLoader`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/factory/factory.py#L29-L37):
+  Checks `file_path.suffix.lower()`, retrieves corresponding loader class from `_LOADERS`, and instantiates it. Raises [`UnsupportedFormatError`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/factory/factory.py#L10-L13) if unregistered.
+- [`LoaderFactory.is_supported(file_path: Path) -> bool`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/factory/factory.py#L39-L41):
+  Returns `True` if file suffix is present in `_LOADERS`.

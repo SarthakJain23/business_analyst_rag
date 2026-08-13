@@ -1,47 +1,20 @@
 # Document Loaders Module - Guidelines
 
-## Purpose
+## Folder & Module Context
 
-The `src/loaders/` module is responsible for ingesting files from `data/documents/` and parsing them into standardized `RawDocument` objects containing raw text content and rich metadata. Each loader lives in its own dedicated subfolder alongside its implementation guidelines.
+The [`src/loaders/`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders) directory houses file-parsing components for the Business Analyst RAG pipeline.
 
-## Directory Structure
+It transforms heterogenous source files stored in `data/documents/` (PDF, Word, Excel workbooks, CSV tables, text files, Markdown notes) into standardized LangChain `Document` objects containing extracted text content and rich source metadata.
 
-```
-src/loaders/
-├── base/
-│   ├── __init__.py
-│   ├── base.py
-│   └── guidelines.md
-├── docx_loader/
-│   ├── __init__.py
-│   ├── docx_loader.py
-│   └── guidelines.md
-├── excel_loader/
-│   ├── __init__.py
-│   ├── excel_loader.py
-│   └── guidelines.md
-├── factory/
-│   ├── __init__.py
-│   ├── factory.py
-│   └── guidelines.md
-├── pdf_loader/
-│   ├── __init__.py
-│   ├── pdf_loader.py
-│   └── guidelines.md
-├── text_loader/
-│   ├── __init__.py
-│   ├── text_loader.py
-│   └── guidelines.md
-├── __init__.py
-├── README.md
-└── guidelines.md
-```
+---
 
-## Loader Guidelines Index
+## Directory Index & Sub-Guidelines
 
-- 📐 [Base Loader Guidelines (`src/loaders/base/guidelines.md`)](base/guidelines.md) — Standardized `BaseLoader` & `RawDocument` interface specifications.
-- 🏭 [Loader Factory Guidelines (`src/loaders/factory/guidelines.md`)](factory/guidelines.md) — Factory pattern implementation & dispatch registry.
-- 📕 [PDF Loader Guidelines (`src/loaders/pdf_loader/guidelines.md`)](pdf_loader/guidelines.md) — PDF extraction, page metadata, and citations.
-- 📄 [Excel & CSV Loader Guidelines (`src/loaders/excel_loader/guidelines.md`)](excel_loader/guidelines.md) — Workbooks, sheets, and Markdown tabular conversions.
-- 📄 [Word Document Loader Guidelines (`src/loaders/docx_loader/guidelines.md`)](docx_loader/guidelines.md) — Paragraph extraction and table layout parsing.
-- 📝 [Text & Markdown Loader Guidelines (`src/loaders/text_loader/guidelines.md`)](text_loader/guidelines.md) — Plain text and Markdown file parsing.
+Click any link below to navigate to a loader-specific guideline:
+
+- 📐 [**Base Loader Guidelines**](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/base/guidelines.md) — Abstract class [`BaseLoader`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/base/base.py#L8-L14) interface contract.
+- 🏭 [**Loader Factory Guidelines**](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/factory/guidelines.md) — Factory class [`LoaderFactory`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/factory/factory.py#L16-L41) dispatch registry.
+- 📕 [**PDF Loader Guidelines**](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/pdf_loader/guidelines.md) — [`PDFLoader`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/pdf_loader/pdf_loader.py#L13-L38) page extraction and metadata.
+- 📄 [**Excel & CSV Loader Guidelines**](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/excel_loader/guidelines.md) — [`ExcelCSVLoader`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/excel_loader/excel_loader.py#L13-L56) tabular markdown conversion.
+- 📄 [**Word Document Loader Guidelines**](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/docx_loader/guidelines.md) — [`DocxLoader`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/docx_loader/docx_loader.py#L13-L49) paragraph & table parsing.
+- 📝 [**Text & Markdown Loader Guidelines**](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/text_loader/guidelines.md) — [`TextLoader`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/text_loader/text_loader.py#L12-L36) UTF-8 text file parsing.

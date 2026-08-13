@@ -1,72 +1,43 @@
 # Business Analyst RAG Application - Master Project Guidelines
 
-## Overview
+## Folder & Repository Context
 
-This document outlines the design principles, architectural standards, directory structure, and engineering practices for the **Business Analyst RAG** system.
+This repository houses the **Business Analyst RAG System**, an enterprise-grade document ingestion and autonomous AI agent platform tailored for analyzing complex business documents (financial filings, earnings reports, market research, Excel spreadsheets, CSV data tables, Word documents, and text notes).
 
-The core objective of this project is to provide a clean, production-ready, modular RAG pipeline tailored for business document analysis (financial statements, market research, strategic decks, CSV/Excel data tables, meeting notes) with automated incremental file ingestion, local ChromaDB storage, live thinking process streaming, and an autonomous Tool-Calling Agent workflow.
-
----
-
-## Key Architectural Principles
-
-1. **DRY (Don't Repeat Yourself)**:
-   - Centralize configuration in [`src/config.py`](src/config.py).
-   - Use unified Document datatypes and Factory patterns for document loading.
-   - Avoid duplicating vector store or LLM initialization across modules.
-
-2. **Orthogonality & Logical Separation**:
-   - Each module handles a single, well-defined responsibility.
-   - **Loaders**: Parse raw files into standard `Document` objects.
-   - **Core Engine**: Manage chunking, SHA-256 state tracking, and pipeline execution.
-   - **Vector Store**: Abstract vector persistence and query operations.
-   - **LLM/RAG**: Orchestrate autonomous Tool-Calling agent workflows, system prompts, reasoning token parsing, and context synthesis.
-   - **Streamlit App**: Presentation layer rendering Chat Center upload banners, real-time agent status, thinking token containers, and message history.
-
-3. **Autonomous Tool-Calling Agent Architecture**:
-   - Vector search is encapsulated into a formal tool (`search_business_documents`).
-   - Gemini autonomously decides in a single streaming pass whether to call `search_business_documents` for document-specific questions or answer directly for general business concepts, greetings, and formulas.
-
-4. **Live Thinking & Decision Process Streaming**:
-   - Model reasoning enclosed within `<thinking>...</thinking>` tags is parsed token-by-token using `ThinkingStreamParser`.
-   - Streaming events (`status`, `thought`, `answer`) are rendered inside an interactive Streamlit status widget (`🧠 Agent Thinking & Decision Process`) and preserved in message history.
-
-5. **Chat Center Empty State Guidance**:
-   - When no documents are uploaded or indexed (`has_documents = False`), the main Chat Center displays a central upload hero banner with drag-and-drop file upload and ingestion controls.
-
-6. **Incremental & State-Aware Ingestion**:
-   - File state is tracked using SHA-256 hashes in `data/metadata/ingestion_state.json`.
-   - Re-ingesting untouched files is strictly avoided. Modified files trigger chunk replacement; deleted files trigger chunk eviction.
+The repository architecture is strictly modularized into functional components under [`src/`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src):
+- [`src/config.py`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/config.py): Application settings, directory paths, and model constants.
+- [`src/loaders/`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders): Document parsing submodules converting multi-format files into standardized document structures.
+- [`src/core/`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/core): Incremental change detection via SHA-256 state tracking, text chunking, and unified ingestion workflow.
+- [`src/vector_store/`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/vector_store): ChromaDB local vector storage and Google Gemini embedding generation (`gemini-embedding-001`).
+- [`src/llm/`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/llm): Autonomous Tool-Calling Agent graph (`gemini-3.6-flash`), streaming reasoning token parser, and RAG execution pipeline.
+- [`src/utils/`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/utils): Logging and exception handling infrastructure.
+- [`app.py`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/app.py): Streamlit web application user interface.
 
 ---
 
-## Directory Structure & Sub-Guidelines Index
+## Architectural Principles & Core Workflows
 
-Click any link below to view the module-specific guidelines:
-
-- 📂 [**src/loaders/guidelines.md**](src/loaders/guidelines.md)
-  _Guidelines for document loaders, abstract parser interfaces, tabular data formatting, and metadata schema._
-
-- 📂 [**src/core/guidelines.md**](src/core/guidelines.md)
-  _Guidelines for incremental state tracking, chunking strategy, and the unified ingestion orchestrator._
-
-- 📂 [**src/vector_store/guidelines.md**](src/vector_store/guidelines.md)
-  _Guidelines for ChromaDB local persistence, Gemini embedding generation (`gemini-embedding-001`), and similarity retrieval._
-
-- 📂 [**src/llm/guidelines.md**](src/llm/guidelines.md)
-  _Guidelines for Google Gemini (`gemini-3.6-flash`), Tool-Calling Agent graph (`graph.py`), `ThinkingStreamParser`, prompt engineering, and streaming execution (`rag_engine.py`)._
-
-- 📂 [**src/utils/guidelines.md**](src/utils/guidelines.md)
-  _Guidelines for logging standards, exception handling, and shared helper routines._
+1. **DRY Configuration**: Centralized in [`Settings`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/config.py#L12-L39).
+2. **Incremental Ingestion**: File modifications are tracked via SHA-256 checksums in [`StateTracker`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/core/state_tracker/state_tracker.py#L32-L148) saving vector re-computation.
+3. **Autonomous Tool Routing**: Gemini autonomously decides whether to invoke [`search_business_documents`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/llm/graph.py#L63-L104) or respond directly using system prompt guidelines ([`prompts.py`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/llm/prompts.py#L1-L20)).
+4. **Token Streaming & Thinking Isolation**: Uses [`ThinkingStreamParser`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/llm/rag_engine.py#L36-L105) to separate model reasoning thoughts (`<thinking>`) from user-facing answer markdown.
 
 ---
 
-## Development Environment & Workflow
+## Directory Index & Sub-Guidelines
+
+Click any link below to navigate to the respective module's guideline document:
+
+- 📂 [**src/loaders/guidelines.md**](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/guidelines.md) — Document loader interfaces, multi-format parsers, tabular data handling, and factory dispatching.
+- 📂 [**src/core/guidelines.md**](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/core/guidelines.md) — Incremental state tracking, text splitting, and unified ingestion engine orchestrator.
+- 📂 [**src/vector_store/guidelines.md**](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/vector_store/guidelines.md) — Local ChromaDB vector storage, Gemini embeddings, and ensemble hybrid search.
+- 📂 [**src/llm/guidelines.md**](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/llm/guidelines.md) — LangGraph Tool-Calling Agent graph, thinking token stream parser, and multi-pass streaming generator.
+- 📂 [**src/utils/guidelines.md**](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/utils/guidelines.md) — Shared logger setup and error logging standards.
+
+---
+
+## Environment & Run Commands
 
 - **Environment Manager**: [`uv`](https://github.com/astral-sh/uv)
-- **Virtual Environment Creation**: `uv venv`
-- **Dependency Installation**: `uv pip install -r requirements.txt` or `uv sync`
-- **Execution**: `uv run streamlit run app.py`
-
----
-
+- **Dependencies**: [`requirements.txt`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/requirements.txt) / [`pyproject.toml`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/pyproject.toml)
+- **Run Application**: `uv run streamlit run app.py`

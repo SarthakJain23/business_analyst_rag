@@ -1,33 +1,39 @@
 # Core Ingestion & State Engine - Guidelines
 
-## Purpose
-The `src/core/` module orchestrates incremental document processing, text chunking, and file state synchronization.
+## Folder & Module Context
 
-## Structural Design & Guidelines
+The [`src/core/`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/core) module forms the data processing backbone of the Business Analyst RAG pipeline.
 
-1. **State Tracker (`src/core/state_tracker/`)**:
-   - Detailed specification & code breakdown: [`guidelines.md`](state_tracker/guidelines.md)
-   - Implementation: [`state_tracker.py`](state_tracker/state_tracker.py)
-   - Maintains `data/metadata/ingestion_state.json`.
-   - Computes SHA-256 hash for every file in `data/documents/`.
-   - Compares current file system state with recorded state to classify files into four categories:
-     - `INDEXED`: New or updated file successfully embedded.
-     - `FAILED`: Parsing/indexing error occurred.
-     - `PENDING`: Queued for processing.
-     - `EMPTY`: File yielded no text content.
+It manages incremental file change detection, document text chunking, and vector database synchronization to ensure that document modifications or deletions on disk (`data/documents/`) are seamlessly reflected in the ChromaDB vector store without costly, redundant re-embedding.
 
-2. **Text Splitter (`src/core/text_splitter/`)**:
-   - Detailed specification & code breakdown: [`guidelines.md`](text_splitter/guidelines.md)
-   - Implementation: [`text_splitter.py`](text_splitter/text_splitter.py)
-   - Uses recursive character text splitting with configurable chunk size (default: 1000 characters) and overlap (default: 150 characters).
-   - Preserves all metadata from the parent `Document` and appends `chunk_id`, `chunk_index`, and `total_chunks`.
+### Submodules & Responsibilities:
+1. **State Tracker** ([`src/core/state_tracker/`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/core/state_tracker)): Maintains SHA-256 hash checksums in `data/metadata/ingestion_state.json` to detect added, modified, deleted, or unchanged files.
+2. **Text Splitter** ([`src/core/text_splitter/`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/core/text_splitter)): Splits parsed document objects into context-preserving text chunks with metadata (`chunk_id`, `chunk_index`, `total_chunks`).
+3. **Ingestion Engine** ([`src/core/ingestion/`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/core/ingestion)): Unified orchestrator coordinating file loading, vector eviction, text chunking, and state persistence into atomic execution cycles.
 
-3. **Ingestion Orchestrator (`src/core/ingestion/`)**:
-   - Detailed specification & code breakdown: [`guidelines.md`](ingestion/guidelines.md)
-   - Implementation: [`ingestion.py`](ingestion/ingestion.py)
-   - Atomic synchronization sequence:
-     1. Query state changes via `state_tracker.detect_changes()`.
-     2. For deleted and modified files, evict existing vectors from ChromaDB.
-     3. For added and modified files, load, chunk, and embed new vectors.
-     4. Save updated state tracker state to disk (`save_state()`).
-   - Exposes clean `IngestionEngine.run()` method returning detailed `IngestionResult` metrics (files processed, chunks created, vectors deleted, errors encountered).
+---
+
+## Detailed Component Breakdown & Sub-Guidelines Index
+
+### 1. State Tracker ([`state_tracker.py`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/core/state_tracker/state_tracker.py))
+- **Detailed Specification**: [📂 `src/core/state_tracker/guidelines.md`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/core/state_tracker/guidelines.md)
+- **Key Code Elements**:
+  - [`FileStatus`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/core/state_tracker/state_tracker.py#L14-L18): String-backed enumeration (`INDEXED`, `FAILED`, `PENDING`, `EMPTY`).
+  - [`FileState`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/core/state_tracker/state_tracker.py#L21-L30): Dataclass holding hash checksum, file size, modification time, chunk count, and status.
+  - [`StateTracker.detect_changes(...)`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/core/state_tracker/state_tracker.py#L79-L111): Compares disk files against stored JSON state using 64KB chunked SHA-256 hashing.
+
+---
+
+### 2. Text Splitter ([`text_splitter.py`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/core/text_splitter/text_splitter.py))
+- **Detailed Specification**: [📂 `src/core/text_splitter/guidelines.md`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/core/text_splitter/guidelines.md)
+- **Key Code Elements**:
+  - [`TextSplitter.__init__(...)`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/core/text_splitter/text_splitter.py#L12-L21): Initializes `RecursiveCharacterTextSplitter` with chunk size 1000 and overlap 150.
+  - [`TextSplitter.split_documents(...)`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/core/text_splitter/text_splitter.py#L23-L44): Generates deterministic chunk IDs (`{hash[:8]}_{section}_chunk_{idx}`) while preserving document metadata.
+
+---
+
+### 3. Ingestion Orchestrator ([`ingestion.py`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/core/ingestion/ingestion.py))
+- **Detailed Specification**: [📂 `src/core/ingestion/guidelines.md`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/core/ingestion/guidelines.md)
+- **Key Code Elements**:
+  - [`IngestionResult`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/core/ingestion/ingestion.py#L15-L21): Summary dataclass returned by ingestion cycles.
+  - [`IngestionEngine.run()`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/core/ingestion/ingestion.py#L39-L100): Executes 4-phase synchronization flow (Change Detection $\rightarrow$ Eviction $\rightarrow$ Parse & Embed $\rightarrow$ State Persistence).

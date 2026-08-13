@@ -1,36 +1,19 @@
-# Text & Markdown Loader Guidelines & Explanation (`text_loader.py`)
+# Text & Markdown Loader Guidelines (`text_loader.py`)
 
-## Overview
+## Folder & File Context
 
-The [`text_loader.py`](text_loader.py) module defines the `TextLoader` class, which handles loading and parsing of plain text (`.txt`) and Markdown (`.md`) files into [`RawDocument`](../base/base.py#L6) objects.
+The [`src/loaders/text_loader/`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/text_loader) directory contains [`text_loader.py`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/text_loader/text_loader.py), which defines [`TextLoader`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/text_loader/text_loader.py#L12-L36).
+
+It parses plain text (`.txt`) and Markdown (`.md`) documents with resilient UTF-8 decoding.
 
 ---
 
-## Class Definition & Code Flow
+## Detailed Code Explanation & Method Breakdown
 
-### 1. Class Inheritance ([text_loader.py:L8](text_loader.py#L8))
+### Class: [`TextLoader`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/text_loader/text_loader.py#L12-L36)
 
-`TextLoader` inherits from [`BaseLoader`](../base/base.py#L20) and implements `load(file_path: Path, file_hash: str) -> List[RawDocument]`.
-
-### 2. File Reading & Encoding ([text_loader.py:L14-L15](text_loader.py#L14-L15))
-
-- Opens file with UTF-8 encoding: `open(file_path, "r", encoding="utf-8", errors="replace")`.
-- Uses `errors="replace"` to gracefully handle non-UTF8 or malformed text characters without throwing decoding exceptions.
-- Reads file content and trims surrounding whitespace via `.strip()`.
-
-### 3. RawDocument & Metadata Construction ([text_loader.py:L17-L25](text_loader.py#L17-L25))
-
-If content is non-empty, creates metadata:
-
-- `source_file`: Absolute resolved file path (`str(file_path.resolve())`).
-- `file_name`: File name string (`file_path.name`).
-- `file_type`: Lower-case file suffix (`.txt` or `.md`).
-- `file_hash`: SHA-256 hash string for state tracking.
-- `page_or_section`: `"Document Content"`.
-
-Wraps content and metadata inside a [`RawDocument`](../base/base.py#L6) object and appends it to the return list.
-
-### 4. Logging & Error Handling ([text_loader.py:L27-L30](text_loader.py#L27-L30))
-
-- Emits success log message via `logger.info`.
-- Catches runtime exceptions, logs details via `logger.error`, and re-raises exceptions.
+- **Inheritance**: Inherits from [`BaseLoader`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/base/base.py#L8-L14).
+- **Method**: [`load(file_path: Path, file_hash: str) -> List[Document]`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/text_loader/text_loader.py#L15-L36):
+  1. Reads file using `open(file_path, "r", encoding="utf-8", errors="replace")` ([L18](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/text_loader/text_loader.py#L18)). `errors="replace"` prevents character decoding crashes.
+  2. Strips surrounding whitespace via `.strip()` ([L19](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/text_loader/text_loader.py#L19)).
+  3. Constructs `Document` with metadata (`source_file`, `file_name`, `file_type: file_path.suffix.lower()`, `file_hash`, `page_or_section: "Document Content"`) ([L22-L29](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/text_loader/text_loader.py#L22-L29)).

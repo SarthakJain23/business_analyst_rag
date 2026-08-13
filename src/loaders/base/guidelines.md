@@ -1,25 +1,35 @@
 # Base Loader Guidelines (`base.py`)
 
-## Overview
+## Folder & File Context
 
-The [`base.py`](base.py) module defines the abstract contract [`BaseLoader`](base.py#L20) and the standardized data structure [`RawDocument`](base.py#L6) used across all file parsing components in the system.
+The [`src/loaders/base/`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/base) directory contains [`base.py`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/base/base.py), which defines the abstract base interface [`BaseLoader`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/base/base.py#L8-L14).
+
+All concrete file loaders in this application inherit from this abstract class, ensuring a consistent polymorphic interface (`load()`) across different file types.
 
 ---
 
-## Guidelines & Architecture
+## Detailed Code Explanation & Interface Definition
 
-### 1. Abstract Base Class (`BaseLoader`)
+### Abstract Base Class ([`BaseLoader`](file:///Users/sarthakjain/Desktop/Personal/business_analyst_rag/src/loaders/base/base.py#L8-L14))
 
-- All concrete document loaders (**PDF**, **Word**, **Excel/CSV**, **Text/Markdown**) MUST inherit from `BaseLoader`.
-- Every loader class MUST implement the abstract method:
-  `load(file_path: Path, file_hash: str) -> List[RawDocument]`
+```python
+class BaseLoader(ABC):
+    @abstractmethod
+    def load(self, file_path: Path, file_hash: str) -> List[Document]:
+        pass
+```
 
-### 2. Standardized Document Data (`RawDocument`)
+- **`file_path`**: Absolute path to source document on disk.
+- **`file_hash`**: Pre-computed SHA-256 hash string for state tracking.
+- **Returns**: `List[Document]` (LangChain `Document` objects with `page_content` and metadata dictionary).
 
-- Loaders MUST return a list of `RawDocument` dataclass instances.
-- Standard required metadata fields for every document output:
-  - `source_file`: Absolute resolved file path.
-  - `file_name`: Basename of the file (e.g. `report.pdf`).
-  - `file_type`: Lowercase file extension (e.g. `.pdf`, `.docx`, `.xlsx`, `.csv`, `.txt`, `.md`).
-  - `file_hash`: SHA-256 string for state tracking.
-  - `page_or_section`: Section, page number (`Page 1`), or sheet name (`Sheet: Financials`).
+---
+
+## Standardized Metadata Schema
+
+All loaders emitting `Document` instances must attach standard keys in `doc.metadata`:
+- `source_file`: Resolved absolute file path string.
+- `file_name`: Basename of document file.
+- `file_type`: Lowercase file extension (e.g. `.pdf`, `.docx`, `.xlsx`, `.csv`, `.txt`, `.md`).
+- `file_hash`: SHA-256 state hash.
+- `page_or_section`: Section label (e.g., `Page 1`, `Sheet: Financials`, `Document Body`).
