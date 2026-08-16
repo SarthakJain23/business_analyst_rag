@@ -7,7 +7,6 @@ from src.core.ingestion import IngestionEngine
 from src.core.state_tracker import StateTracker
 from src.embeddings import (
     VENDOR_LABELS,
-    EmbeddingProvider,
     EmbeddingVendor,
     get_embedding_function,
     get_model_dimension,
